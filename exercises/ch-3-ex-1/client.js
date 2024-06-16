@@ -45,6 +45,7 @@ app.get("/", function (req, res) {
 app.get("/authorize", function (req, res) {
   access_token = null
 
+  state = randomstring.generate()
   /*
    * Send the user to the authorization server
    */
@@ -52,6 +53,7 @@ app.get("/authorize", function (req, res) {
     response_type: "code",
     client_id: client.client_id,
     redirect_uri: client.redirect_uris[0],
+    state: state,
   })
   console.log("redirect", authorizeUrl)
   res.redirect(authorizeUrl)
@@ -63,10 +65,20 @@ app.get("/callback", function (req, res) {
     return
   }
 
+  if (req.query.state != state) {
+    console.log(
+      "State DOES NOT MATCH: expected %s got %s",
+      state,
+      req.query.state
+    )
+    res.render("error", { error: "State value did not match" })
+    return
+  }
   /*
    * Parse the response from the authorization server and get a token
    */
   var code = req.query.code
+
   var form_data = qs.stringify({
     grant_type: "authorization_code",
     code: code,
